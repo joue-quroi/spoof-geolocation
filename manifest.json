@@ -1,0 +1,35 @@
+{
+  "manifest_version": 2,
+  "version": "0.1.0",
+  "name": "Spoof Geolocation",
+  "description": "This extension alters browser Geolocation latitude and longitude to a user-defined value",
+
+  "permissions": [
+    "storage",
+    "contextMenus",
+    "*://*/*"
+  ],
+  "icons": {
+    "16": "data/icons/16.png",
+    "32": "data/icons/32.png",
+    "48": "data/icons/48.png",
+    "64": "data/icons/64.png",
+    "128": "data/icons/128.png",
+    "256": "data/icons/256.png"
+  },
+  "browser_action":{},
+  "background": {
+    "persistent": false,
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "content_scripts": [{
+    "matches":["*://*/*"],
+    "match_about_blank": true,
+    "all_frames": true,
+    "run_at": "document_start",
+    "js": ["data/inject.js"]
+  }],
+  "homepage_url": "http://add0n.com/spoof-geolocation.html"
+}
