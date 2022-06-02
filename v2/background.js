@@ -36,7 +36,7 @@ const context = () => chrome.storage.local.get({
     contexts: ['browser_action']
   });
 });
-chrome.contextMenus.onClicked.addListener(info => {
+chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'reset') {
     chrome.storage.local.set({
       latitude: -1,
@@ -50,9 +50,43 @@ chrome.contextMenus.onClicked.addListener(info => {
   }
   else if (info.menuItemId === 'test') {
     chrome.tabs.create({
-      url: 'https://webbrowsertools.com/geolocation/'
+      url: 'https://webbrowsertools.com/geolocation/',
+      index: tab.index
     });
   }
 });
 chrome.runtime.onStartup.addListener(context);
 chrome.runtime.onInstalled.addListener(context);
+
+chrome.browserAction.onClicked.addListener(tab => chrome.tabs.create({
+  url: 'https://webbrowsertools.com/geolocation/',
+  index: tab.index
+}));
+
+/* FAQs & Feedback */
+{
+  const {management, runtime: {onInstalled, setUninstallURL, getManifest}, storage, tabs} = chrome;
+  if (navigator.webdriver !== true) {
+    const page = getManifest().homepage_url;
+    const {name, version} = getManifest();
+    onInstalled.addListener(({reason, previousVersion}) => {
+      management.getSelf(({installType}) => installType === 'normal' && storage.local.get({
+        'faqs': true,
+        'last-update': 0
+      }, prefs => {
+        if (reason === 'install' || (prefs.faqs && reason === 'update')) {
+          const doUpdate = (Date.now() - prefs['last-update']) / 1000 / 60 / 60 / 24 > 45;
+          if (doUpdate && previousVersion !== version) {
+            tabs.query({active: true, currentWindow: true}, tbs => tabs.create({
+              url: page + '?version=' + version + (previousVersion ? '&p=' + previousVersion : '') + '&type=' + reason,
+              active: reason === 'install',
+              ...(tbs && tbs.length && {index: tbs[0].index + 1})
+            }));
+            storage.local.set({'last-update': Date.now()});
+          }
+        }
+      }));
+    });
+    setUninstallURL(page + '?rd=feedback&name=' + encodeURIComponent(name) + '&version=' + version);
+  }
+}

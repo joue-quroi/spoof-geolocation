@@ -3,9 +3,8 @@ const script = document.createElement('script');
 script.addEventListener('permission', () => chrome.storage.local.get({
   enabled: true
 }, prefs => {
-  script.dispatchEvent(new CustomEvent('resolve-permissions', {
-    detail: prefs
-  }));
+  script.dataset.enabled = prefs.enabled;
+  script.dispatchEvent(new Event('resolve-permissions'));
 }));
 script.addEventListener('ask', () => chrome.storage.local.get({
   latitude: -1,
@@ -13,9 +12,11 @@ script.addEventListener('ask', () => chrome.storage.local.get({
   enabled: true
 }, prefs => {
   const next = enabled => {
-    script.dispatchEvent(new CustomEvent('resolve-geos', {
-      detail: prefs
-    }));
+    script.dataset.latitude = prefs.latitude;
+    script.dataset.longitude = prefs.longitude;
+    script.dataset.enabled = prefs.enabled;
+
+    script.dispatchEvent(new Event('resolve-geos'));
 
     chrome.runtime.sendMessage({
       method: 'geo-requested',
@@ -73,6 +74,8 @@ script.textContent = `
   };
 
   {
+    const script = document.currentScript;
+
     function PositionError(code, message) {
       this.code = code;
       this.message = message;
@@ -82,8 +85,6 @@ script.textContent = `
     PositionError.TIMEOUT = 3;
     PositionError.prototype = new Error();
 
-    const script = document.currentScript;
-
     let id = 0;
     let callbacks = {
       geo: [],
@@ -91,7 +92,11 @@ script.textContent = `
     };
 
     script.addEventListener('resolve-geos', e => {
-      const prefs = e.detail;
+      const prefs = {
+        latitude: Number(script.dataset.latitude),
+        longitude: Number(script.dataset.longitude),
+        enabled: script.dataset.enabled === 'true'
+      };
 
       for (const [success, error] of callbacks.geo) {
         try {
@@ -134,7 +139,9 @@ script.textContent = `
     });
 
     script.addEventListener('resolve-permissions', e => {
-      const prefs = e.detail;
+      const prefs = {
+        enabled: script.dataset.enabled === 'true'
+      };
 
       for (const {resolve, result} of callbacks.permission) {
         try {
@@ -145,11 +152,13 @@ script.textContent = `
         }
         catch (e) {}
       }
+      callbacks.permission.length = 0;
     });
 
     navigator.permissions.query = new Proxy(navigator.permissions.query, {
       apply(target, self, args) {
         return Reflect.apply(target, self, args).then(result => {
+
           if (args[0] && args[0].name === 'geolocation') {
             return new Promise(resolve => {
               callbacks.permission.push({resolve, result});
