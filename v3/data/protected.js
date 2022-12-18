@@ -1,7 +1,8 @@
 const root = document.documentElement;
 
 root.addEventListener('sp-request-permission', () => chrome.storage.local.get({
-  enabled: true
+  enabled: true,
+  bypass: []
 }, prefs => root.dispatchEvent(new CustomEvent('sp-response-permission', {
   detail: prefs
 }))));
@@ -11,9 +12,10 @@ root.addEventListener('sp-request-geo-data', () => chrome.storage.local.get({
   longitude: -1,
   accuracy: 64.0999,
   enabled: true,
-  randomize: false
+  randomize: false,
+  bypass: []
 }, prefs => {
-  const next = enabled => {
+  const next = () => {
     if (prefs.randomize) {
       try {
         const m = prefs.latitude.toString().split('.')[1].length;
@@ -34,11 +36,6 @@ root.addEventListener('sp-request-geo-data', () => chrome.storage.local.get({
     root.dispatchEvent(new CustomEvent('sp-response-geo-data', {
       detail: prefs
     }));
-
-    chrome.runtime.sendMessage({
-      method: 'geo-requested',
-      enabled
-    });
   };
 
   if (prefs.latitude === -1) {
@@ -49,10 +46,10 @@ root.addEventListener('sp-request-geo-data', () => chrome.storage.local.get({
   }
 
   if (prefs.enabled === false) {
-    next(false);
+    next();
   }
   else if (prefs.latitude && prefs.longitude) {
-    next(true);
+    next();
   }
   else {
     const r = prompt(`Enter your spoofed "latitude" and "longitude" (e.g. values for London, UK)
@@ -66,12 +63,20 @@ Use https://www.latlong.net/ to find these values`, '51.507351, -0.127758');
     else {
       const [latitude, longitude] = r.split(/\s*,\s*/);
 
-      if (
-        latitude && latitude.split('.')[1].length > 3 && isNaN(latitude) === false &&
-        longitude && longitude.split('.')[1].length > 3 && isNaN(longitude) === false
-      ) {
-        prefs.latitude = Number(Number(latitude).toFixed(6));
-        prefs.longitude = Number(Number(longitude).toFixed(6));
+      try {
+        // validate latitude
+        if (!isFinite(latitude) || Math.abs(latitude) > 90) {
+          throw Error('Latitude must be a number between -90 and 90');
+        }
+        if (!isFinite(longitude) || Math.abs(longitude) > 180) {
+          throw Error('Longitude must a number between -180 and 180');
+        }
+        if (latitude.split('.')[1].length < 4 || longitude.split('.')[1].length < 4) {
+          throw Error('The number of digits to appear after the decimal point must be greater than 4. Example: 51.507351, -0.127758');
+        }
+
+        prefs.latitude = Number(latitude);
+        prefs.longitude = Number(longitude);
 
         chrome.storage.local.get({
           history: []
@@ -86,11 +91,19 @@ Use https://www.latlong.net/ to find these values`, '51.507351, -0.127758');
           chrome.storage.local.set(prefs, () => next(true));
         });
       }
-      else {
-        alert('Error: The number of digits to appear after the decimal point must be greater than 4. Example: 51.507351, -0.127758');
-
+      catch (e) {
+        console.error(e);
         next(false);
+        alert('GEO Request Denied\n\n' + e.message);
       }
     }
   }
+}));
+
+root.addEventListener('sp-bypassed', () => chrome.runtime.sendMessage({
+  method: 'geo-bypassed'
+}));
+root.addEventListener('sp-requested', e => chrome.runtime.sendMessage({
+  method: 'geo-requested',
+  enabled: e.detail
 }));

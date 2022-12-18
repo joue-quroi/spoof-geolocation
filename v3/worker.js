@@ -1,6 +1,8 @@
 self.importScripts('context.js');
 
 chrome.runtime.onMessage.addListener((request, sender) => {
+  console.log(request);
+
   if (request.method === 'geo-requested') {
     chrome.action.setIcon({
       tabId: sender.tab.id,
@@ -15,14 +17,26 @@ chrome.runtime.onMessage.addListener((request, sender) => {
       title: request.enabled ? 'GEO is spoofed on this page' : 'GEO request is denied'
     });
   }
+  else if (request.method === 'geo-bypassed') {
+    chrome.action.setIcon({
+      tabId: sender.tab.id,
+      path: {
+        '16': 'data/icons/bypassed/16.png',
+        '32': 'data/icons/bypassed/32.png',
+        '48': 'data/icons/bypassed/48.png'
+      }
+    });
+    chrome.action.setTitle({
+      tabId: sender.tab.id,
+      title: 'Spoofing is bypassed. This website is in the exception list'
+    });
+  }
 });
 
 const activate = () => chrome.storage.local.get({
   active: true
 }, async prefs => {
-  await chrome.scripting.unregisterContentScripts({
-    ids: ['protected', 'unprotected']
-  }).catch(() => {});
+  await chrome.scripting.unregisterContentScripts();
   if (prefs.active) {
     await chrome.scripting.registerContentScripts([{
       'id': 'unprotected',

@@ -1,3 +1,7 @@
+/* global tld */
+
+self.importScripts('tld.js');
+
 const context = () => chrome.storage.local.get({
   enabled: true,
   history: [],
@@ -127,6 +131,30 @@ const context = () => chrome.storage.local.get({
       checked: prefs.latitude === a && prefs.longitude === b
     });
   }
+  chrome.contextMenus.create({
+    title: 'Bypass Spoofing',
+    id: 'bypass',
+    contexts: ['action'],
+    parentId: 'options'
+  });
+  chrome.contextMenus.create({
+    title: 'Add to the Exception List',
+    id: 'add-exception',
+    contexts: ['action'],
+    parentId: 'bypass'
+  });
+  chrome.contextMenus.create({
+    title: 'Remove from the Exception List',
+    id: 'remove-exception',
+    contexts: ['action'],
+    parentId: 'bypass'
+  });
+  chrome.contextMenus.create({
+    title: 'Open Exception List in Editor',
+    id: 'exception-editor',
+    contexts: ['action'],
+    parentId: 'bypass'
+  });
 });
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'reset') {
@@ -166,6 +194,63 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       accuracy: parseFloat(info.menuItemId.slice(9))
     });
   }
+  else if (info.menuItemId === 'add-exception') {
+    const url = tab.url;
+
+    if (url.startsWith('http')) {
+      chrome.storage.local.get({
+        bypass: []
+      }, prefs => {
+        const d = tld.getDomain(tab.url);
+
+        const hosts = new Set(prefs.bypass);
+        hosts.add(d);
+        hosts.add('*.' + d);
+        console.info('adding', d, '*.' + d, 'to the exception list');
+
+        chrome.storage.local.set({
+          bypass: [...hosts]
+        });
+      });
+    }
+  }
+  else if (info.menuItemId === 'remove-exception') {
+    const url = tab.url;
+
+    if (url.startsWith('http')) {
+      chrome.storage.local.get({
+        bypass: []
+      }, prefs => {
+        const d = tld.getDomain(tab.url);
+
+        console.info('removing', d, '*.' + d, 'from the exception list');
+
+        chrome.storage.local.set({
+          bypass: prefs.bypass.filter(m => m !== d && m !== '*.' + d)
+        });
+      });
+    }
+  }
+  else if (info.menuItemId === 'exception-editor') {
+    const msg = `Insert one hostname per line. Press the "Save List" button to update the list.
+
+Example of valid formats:
+
+  example.com
+  *.example.com
+  https://example.com/*
+  *://*.example.com/*`;
+    chrome.windows.getCurrent(win => {
+      chrome.windows.create({
+        url: 'data/editor/index.html?msg=' + encodeURIComponent(msg) + '&storage=bypass',
+        width: 600,
+        height: 600,
+        left: win.left + Math.round((win.width - 600) / 2),
+        top: win.top + Math.round((win.height - 600) / 2),
+        type: 'popup'
+      });
+    });
+  }
 });
 chrome.runtime.onStartup.addListener(context);
 chrome.runtime.onInstalled.addListener(context);
@@ -177,7 +262,6 @@ chrome.storage.onChanged.addListener(ps => {
       longitude: -1
     }, async prefs => {
       for (const [a, b] of ps.history.oldValue || []) {
-        console.log(a, b);
         await chrome.contextMenus.remove('set:' + a + '|' + b);
       }
       for (const [a, b] of ps.history.newValue || []) {
@@ -199,7 +283,7 @@ chrome.storage.onChanged.addListener(ps => {
     chrome.storage.local.get({
       latitude: -1,
       longitude: -1
-    }, async prefs => {
+    }, prefs => {
       chrome.contextMenus.update('set:' + prefs.latitude + '|' + prefs.longitude, {
         checked: true
       });
