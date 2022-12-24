@@ -41,6 +41,7 @@ const activate = () => chrome.storage.local.get({
     await chrome.scripting.registerContentScripts([{
       'id': 'unprotected',
       'matches': ['*://*/*'],
+      'excludeMatches': ['*://*/*.xml'],
       'allFrames': true,
       'matchOriginAsFallback': true,
       'runAt': 'document_start',
@@ -49,6 +50,7 @@ const activate = () => chrome.storage.local.get({
     }, {
       'id': 'protected',
       'matches': ['*://*/*'],
+      'excludeMatches': ['*://*/*.xml'],
       'allFrames': true,
       'matchOriginAsFallback': true,
       'runAt': 'document_start',
