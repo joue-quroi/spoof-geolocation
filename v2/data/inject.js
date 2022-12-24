@@ -305,7 +305,7 @@ navigator.geolocation = navigator.geolocation || {
   });
 }
 `;
+// https://github.com/joue-quroi/spoof-geolocation/issues/3
 if (document.contentType && document.contentType.endsWith('xml') === false) {
   document.documentElement.append(script);
 }
-
