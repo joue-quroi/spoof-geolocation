@@ -1,8 +1,6 @@
 self.importScripts('context.js');
 
 chrome.runtime.onMessage.addListener((request, sender) => {
-  console.log(request);
-
   if (request.method === 'geo-requested') {
     chrome.action.setIcon({
       tabId: sender.tab.id,
@@ -41,7 +39,6 @@ const activate = () => chrome.storage.local.get({
     await chrome.scripting.registerContentScripts([{
       'id': 'unprotected',
       'matches': ['*://*/*'],
-      'excludeMatches': ['*://*/*.xml'],
       'allFrames': true,
       'matchOriginAsFallback': true,
       'runAt': 'document_start',
@@ -50,7 +47,6 @@ const activate = () => chrome.storage.local.get({
     }, {
       'id': 'protected',
       'matches': ['*://*/*'],
-      'excludeMatches': ['*://*/*.xml'],
       'allFrames': true,
       'matchOriginAsFallback': true,
       'runAt': 'document_start',

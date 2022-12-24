@@ -1,27 +1,41 @@
 const script = document.createElement('script');
 
-script.addEventListener('permission', () => chrome.storage.local.get({
-  enabled: true
+script.addEventListener('sp-request-permission', () => chrome.storage.local.get({
+  enabled: true,
+  bypass: []
 }, prefs => {
-  script.dataset.enabled = prefs.enabled;
-  script.dispatchEvent(new Event('resolve-permissions'));
+  script.dataset.prefs = JSON.stringify(prefs);
+  script.dispatchEvent(new Event('sp-response-permission'));
 }));
-script.addEventListener('ask', () => chrome.storage.local.get({
+
+script.addEventListener('sp-request-geo-data', () => chrome.storage.local.get({
   latitude: -1,
   longitude: -1,
-  enabled: true
+  accuracy: 64.0999,
+  enabled: true,
+  randomize: false,
+  bypass: []
 }, prefs => {
-  const next = enabled => {
-    script.dataset.latitude = prefs.latitude;
-    script.dataset.longitude = prefs.longitude;
-    script.dataset.enabled = prefs.enabled;
+  const next = () => {
+    if (prefs.randomize) {
+      try {
+        const m = prefs.latitude.toString().split('.')[1].length;
+        prefs.latitude = prefs.latitude +
+          (Math.random() > 0.5 ? 1 : -1) * prefs.randomize * Math.random();
+        prefs.latitude = Number(prefs.latitude.toFixed(m));
 
-    script.dispatchEvent(new Event('resolve-geos'));
+        const n = prefs.longitude.toString().split('.')[1].length;
+        prefs.longitude = prefs.longitude +
+          (Math.random() > 0.5 ? 1 : -1) * prefs.randomize * Math.random();
+        prefs.longitude = Number(prefs.longitude.toFixed(n));
+      }
+      catch (e) {
+        console.warn('Cannot randomize GEO', e);
+      }
+    }
 
-    chrome.runtime.sendMessage({
-      method: 'geo-requested',
-      enabled
-    });
+    script.dataset.prefs = JSON.stringify(prefs);
+    script.dispatchEvent(new Event('sp-response-geo-data'));
   };
 
   if (prefs.latitude === -1) {
@@ -32,10 +46,10 @@ script.addEventListener('ask', () => chrome.storage.local.get({
   }
 
   if (prefs.enabled === false) {
-    next(false);
+    next();
   }
   else if (prefs.latitude && prefs.longitude) {
-    next(true);
+    next();
   }
   else {
     const r = prompt(`Enter your spoofed "latitude" and "longitude" (e.g. values for London, UK)
@@ -49,57 +63,171 @@ Use https://www.latlong.net/ to find these values`, '51.507351, -0.127758');
     else {
       const [latitude, longitude] = r.split(/\s*,\s*/);
 
-      if (
-        latitude && latitude.split('.')[1].length > 3 && isNaN(latitude) === false &&
-        longitude && longitude.split('.')[1].length > 3 && isNaN(longitude) === false
-      ) {
-        prefs.latitude = Number(Number(latitude).toFixed(6));
-        prefs.longitude = Number(Number(longitude).toFixed(6));
+      try {
+        // validate latitude
+        if (!isFinite(latitude) || Math.abs(latitude) > 90) {
+          throw Error('Latitude must be a number between -90 and 90');
+        }
+        if (!isFinite(longitude) || Math.abs(longitude) > 180) {
+          throw Error('Longitude must a number between -180 and 180');
+        }
+        if (latitude.split('.')[1].length < 4 || longitude.split('.')[1].length < 4) {
+          throw Error('The number of digits to appear after the decimal point must be greater than 4. Example: 51.507351, -0.127758');
+        }
 
-        chrome.storage.local.set(prefs, () => next(true));
+        prefs.latitude = Number(latitude);
+        prefs.longitude = Number(longitude);
+
+        chrome.storage.local.get({
+          history: []
+        }, ps => {
+          const names = [];
+          ps.history.forEach(([a, b]) => names.push(a + '|' + b));
+          if (names.includes(prefs.latitude + '|' + prefs.longitude) === false) {
+            ps.history.unshift([prefs.latitude, prefs.longitude]);
+            prefs.history = ps.history.slice(0, 10);
+          }
+
+          chrome.storage.local.set(prefs, () => next(true));
+        });
       }
-      else {
-        alert('Error: The number of digits to appear after the decimal point must be greater than 4. Example: 51.507351, -0.127758');
-
+      catch (e) {
+        console.error(e);
         next(false);
+        alert('GEO Request Denied\n\n' + e.message);
       }
     }
   }
 }));
 
+script.addEventListener('sp-bypassed', () => chrome.runtime.sendMessage({
+  method: 'geo-bypassed'
+}));
+script.addEventListener('sp-requested', () => chrome.runtime.sendMessage({
+  method: 'geo-requested',
+  enabled: script.dataset.enabled === 'true'
+}));
+
+
 script.textContent = `
-  navigator.geolocation = navigator.geolocation || {
-    getCurrentPosition() {},
-    watchPosition() {}
-  };
+// polyfill
+navigator.geolocation = navigator.geolocation || {
+  getCurrentPosition() {},
+  watchPosition() {}
+};
 
-  {
-    const script = document.currentScript;
-
-    function PositionError(code, message) {
+{
+  class PositionError extends Error {
+    constructor(code, message) {
+      super();
       this.code = code;
       this.message = message;
     }
-    PositionError.PERMISSION_DENIED = 1;
-    PositionError.POSITION_UNAVAILABLE = 2;
-    PositionError.TIMEOUT = 3;
-    PositionError.prototype = new Error();
+  }
+  PositionError.PERMISSION_DENIED = 1;
+  PositionError.POSITION_UNAVAILABLE = 2;
+  PositionError.TIMEOUT = 3;
 
-    let id = 0;
-    let callbacks = {
-      geo: [],
-      permission: []
-    };
+  let id = 0;
+  const lazy = {
+    geos: [],
+    permissions: []
+  };
 
-    script.addEventListener('resolve-geos', e => {
-      const prefs = {
-        latitude: Number(script.dataset.latitude),
-        longitude: Number(script.dataset.longitude),
-        enabled: script.dataset.enabled === 'true'
-      };
+  const script = document.currentScript;
 
-      for (const [success, error] of callbacks.geo) {
+  const matchURL = (url, pattern) => {
+    const patternParts = pattern.split('://');
+    const urlParts = url.split('://');
+
+    if (patternParts.length !== urlParts.length) {
+      return false;
+    }
+
+    if (patternParts[0] !== '*' && patternParts[0] !== urlParts[0]) {
+      return false;
+    }
+
+    const patternSegments = patternParts[1].split('/');
+    const urlSegments = urlParts[1].split('/');
+
+    if (patternSegments.length > urlSegments.length) {
+      return false;
+    }
+
+    for (let i = 0; i < patternSegments.length; i++) {
+      const patternSegment = patternSegments[i];
+      const urlSegment = urlSegments[i];
+
+      if (patternSegment === '*') {
+        continue;
+      }
+
+      if (patternSegment !== urlSegment) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const bypass = prefs => {
+    for (let host of prefs.bypass) {
+      try {
+        // fix the formatting
+        if (host.includes('://') === false) {
+          host = '*://' + host;
+        }
+        if (host.endsWith('*') === false && host.endsWith('/') === false) {
+          host += '/*';
+        }
+
+        if (typeof self.URLPattern === 'undefined') {
+          if (matchURL(location.href, host)) {
+            if (window.top === window) {
+              script.dispatchEvent(new Event('sp-bypassed'));
+            }
+
+            return true;
+          }
+
+        }
+        else {
+          const pattern = new self.URLPattern(host);
+          const v = pattern.test(location.href);
+
+          if (v) {
+            if (window.top === window) {
+              script.dispatchEvent(new Event('sp-bypassed'));
+            }
+
+            return true;
+          }
+        }
+      }
+      catch (e) {
+        console.info('Cannot use this host matching rule', host);
+      }
+    }
+
+    script.dataset.enabled = prefs.enabled;
+    script.dispatchEvent(new Event('sp-requested'));
+    return false;
+  };
+
+  script.addEventListener('sp-response-geo-data', e => {
+    const prefs = JSON.parse(script.dataset.prefs);
+
+    // bypass
+    if (bypass(prefs)) {
+      for (const o of lazy.geos) {
+        Reflect.apply(o.target, o.self, o.args);
+      }
+    }
+    else {
+      for (const o of lazy.geos) {
         try {
+          const [success, error] = o.args;
           if (prefs.latitude && prefs.longitude && prefs.enabled) {
             success({
               timestamp: Date.now(),
@@ -107,7 +235,7 @@ script.textContent = `
                 latitude: prefs.latitude,
                 longitude: prefs.longitude,
                 altitude: null,
-                accuracy: 64.0999,
+                accuracy: prefs.accuracy,
                 altitudeAccuracy: null,
                 heading: parseInt('NaN', 10),
                 velocity: null
@@ -120,58 +248,64 @@ script.textContent = `
         }
         catch (e) {}
       }
-      callbacks.geo.length = 0;
-    });
+    }
 
-    navigator.geolocation.getCurrentPosition = new Proxy(navigator.geolocation.getCurrentPosition, {
-      apply(target, self, args) {
-        callbacks.geo.push(args)
-        script.dispatchEvent(new Event('ask'));
-      }
-    });
+    lazy.geos.length = 0;
+  });
 
-    navigator.geolocation.watchPosition = new Proxy(navigator.geolocation.watchPosition, {
-      apply(target, self, args) {
-        navigator.geolocation.getCurrentPosition(...args);
-        id += 1;
-        return id;
-      }
-    });
+  navigator.geolocation.getCurrentPosition = new Proxy(navigator.geolocation.getCurrentPosition, {
+    apply(target, self, args) {
+      lazy.geos.push({target, self, args});
+      script.dispatchEvent(new Event('sp-request-geo-data'));
+    }
+  });
 
-    script.addEventListener('resolve-permissions', e => {
-      const prefs = {
-        enabled: script.dataset.enabled === 'true'
-      };
+  navigator.geolocation.watchPosition = new Proxy(navigator.geolocation.watchPosition, {
+    apply(target, self, args) {
+      navigator.geolocation.getCurrentPosition(...args);
+      id += 1;
+      return id;
+    }
+  });
 
-      for (const {resolve, result} of callbacks.permission) {
-        try {
+  script.addEventListener('sp-response-permission', e => {
+    const prefs = JSON.parse(script.dataset.prefs);
+
+    const b = bypass(prefs);
+
+    for (const {resolve, result} of lazy.permissions) {
+      try {
+        if (!b) {
           Object.defineProperty(result, 'state', {
             value: prefs.enabled ? 'granted' : 'denied'
           });
-          resolve(result);
         }
-        catch (e) {}
-      }
-      callbacks.permission.length = 0;
-    });
 
-    navigator.permissions.query = new Proxy(navigator.permissions.query, {
-      apply(target, self, args) {
-        return Reflect.apply(target, self, args).then(result => {
-
-          if (args[0] && args[0].name === 'geolocation') {
-            return new Promise(resolve => {
-              callbacks.permission.push({resolve, result});
-              script.dispatchEvent(new Event('permission'));
-            });
-          }
-          else {
-            return result;
-          }
-        });
+        resolve(result);
       }
-    });
-  }
+      catch (e) {}
+    }
+    lazy.permissions.length = 0;
+  });
+
+  navigator.permissions.query = new Proxy(navigator.permissions.query, {
+    apply(target, self, args) {
+      return Reflect.apply(target, self, args).then(result => {
+        if (args[0] && args[0].name === 'geolocation') {
+          return new Promise(resolve => {
+            lazy.permissions.push({resolve, result});
+            script.dispatchEvent(new Event('sp-request-permission'));
+          });
+        }
+        else {
+          return result;
+        }
+      });
+    }
+  });
+}
 `;
-document.documentElement.appendChild(script);
+if (document.contentType && document.contentType.endsWith('xml') === false) {
+  document.documentElement.append(script);
+}
 
