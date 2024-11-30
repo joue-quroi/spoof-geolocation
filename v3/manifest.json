@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "version": "0.2.4",
+  "version": "0.2.5",
   "name": "Spoof Geolocation",
   "description": "This extension alters browser Geolocation latitude and longitude to user-defined values",
   "permissions": [

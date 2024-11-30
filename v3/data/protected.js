@@ -1,10 +1,16 @@
+/* global cloneInto */
 const root = document.documentElement;
 
 root.addEventListener('sp-request-permission', async () => {
-  const prefs = await chrome.storage.local.get({
+  let prefs = await chrome.storage.local.get({
     enabled: true,
     bypass: []
   });
+
+  if (typeof cloneInto !== 'undefined') {
+    prefs = cloneInto(prefs, window);
+  }
+
   root.dispatchEvent(new CustomEvent('sp-response-permission', {
     detail: prefs
   }));
@@ -56,7 +62,7 @@ const respond = async () => {
   }
   respond.busy = true;
 
-  const prefs = await chrome.storage.local.get({
+  let prefs = await chrome.storage.local.get({
     latitude: -1,
     longitude: -1,
     accuracy: 64.0999,
@@ -99,6 +105,10 @@ const respond = async () => {
     catch (e) {
       console.warn('Cannot randomize GEO', e);
     }
+  }
+
+  if (typeof cloneInto !== 'undefined') {
+    prefs = cloneInto(prefs, window);
   }
 
   root.dispatchEvent(new CustomEvent('sp-response-geo-data', {
