@@ -1,42 +1,54 @@
 /* global tld */
 
-self.importScripts('tld.js');
+if (typeof importScripts !== 'undefined') {
+  self.importScripts('tld.js');
+}
 
-const context = () => chrome.storage.local.get({
-  enabled: true,
-  history: [],
-  randomize: false,
-  accuracy: 64.0999
-}, prefs => {
-  chrome.contextMenus.create({
+const create = o => chrome.contextMenus.create(o, () => {
+  chrome.runtime.lastError;
+});
+
+const context = async () => {
+  if (context.built) {
+    return;
+  }
+  context.built = true;
+
+  const prefs = await chrome.storage.local.get({
+    enabled: true,
+    history: [],
+    randomize: false,
+    accuracy: 64.0999
+  });
+  create({
     title: 'Allow/Disallow GEO requests',
     id: 'enabled',
     contexts: ['action'],
     type: 'checkbox',
     checked: prefs.enabled
   });
-  chrome.contextMenus.create({
+  create({
+    title: 'Set GEO location from Map or Validate',
+    id: 'test',
+    contexts: ['action']
+  });
+  create({
     title: 'Reset GEO data (ask for new values on first request)',
     id: 'reset',
     contexts: ['action']
   });
-  chrome.contextMenus.create({
-    title: 'Test GEO location',
-    id: 'test',
-    contexts: ['action']
-  });
-  chrome.contextMenus.create({
+  create({
     title: 'Options',
     id: 'options',
     contexts: ['action']
   });
-  chrome.contextMenus.create({
+  create({
     title: 'Randomize',
     id: 'randomize',
     contexts: ['action'],
     parentId: 'options'
   });
-  chrome.contextMenus.create({
+  create({
     title: 'Disabled',
     id: 'randomize:false',
     contexts: ['action'],
@@ -44,7 +56,7 @@ const context = () => chrome.storage.local.get({
     type: 'radio',
     parentId: 'randomize'
   });
-  chrome.contextMenus.create({
+  create({
     title: '0.1',
     id: 'randomize:0.1',
     contexts: ['action'],
@@ -52,7 +64,7 @@ const context = () => chrome.storage.local.get({
     type: 'radio',
     parentId: 'randomize'
   });
-  chrome.contextMenus.create({
+  create({
     title: '0.01',
     id: 'randomize:0.01',
     contexts: ['action'],
@@ -60,7 +72,7 @@ const context = () => chrome.storage.local.get({
     type: 'radio',
     parentId: 'randomize'
   });
-  chrome.contextMenus.create({
+  create({
     title: '0.001',
     id: 'randomize:0.001',
     contexts: ['action'],
@@ -68,7 +80,7 @@ const context = () => chrome.storage.local.get({
     type: 'radio',
     parentId: 'randomize'
   });
-  chrome.contextMenus.create({
+  create({
     title: '0.0001',
     id: 'randomize:0.0001',
     contexts: ['action'],
@@ -76,7 +88,7 @@ const context = () => chrome.storage.local.get({
     type: 'radio',
     parentId: 'randomize'
   });
-  chrome.contextMenus.create({
+  create({
     title: '0.00001',
     id: 'randomize:0.00001',
     contexts: ['action'],
@@ -84,13 +96,13 @@ const context = () => chrome.storage.local.get({
     type: 'radio',
     parentId: 'randomize'
   });
-  chrome.contextMenus.create({
+  create({
     title: 'Accuracy',
     id: 'accuracy',
     contexts: ['action'],
     parentId: 'options'
   });
-  chrome.contextMenus.create({
+  create({
     title: '64.0999',
     id: 'accuracy:64.0999',
     contexts: ['action'],
@@ -98,7 +110,7 @@ const context = () => chrome.storage.local.get({
     type: 'radio',
     parentId: 'accuracy'
   });
-  chrome.contextMenus.create({
+  create({
     title: '34.0999',
     id: 'accuracy:34.0999',
     contexts: ['action'],
@@ -106,7 +118,7 @@ const context = () => chrome.storage.local.get({
     type: 'radio',
     parentId: 'accuracy'
   });
-  chrome.contextMenus.create({
+  create({
     title: '10.0999',
     id: 'accuracy:10.0999',
     contexts: ['action'],
@@ -114,7 +126,7 @@ const context = () => chrome.storage.local.get({
     type: 'radio',
     parentId: 'accuracy'
   });
-  chrome.contextMenus.create({
+  create({
     title: 'GEO History',
     id: 'history',
     contexts: ['action'],
@@ -122,7 +134,7 @@ const context = () => chrome.storage.local.get({
     parentId: 'options'
   });
   for (const [a, b] of prefs.history) {
-    chrome.contextMenus.create({
+    create({
       title: a + ', ' + b,
       id: 'set:' + a + '|' + b,
       contexts: ['action'],
@@ -131,31 +143,32 @@ const context = () => chrome.storage.local.get({
       checked: prefs.latitude === a && prefs.longitude === b
     });
   }
-  chrome.contextMenus.create({
+  create({
     title: 'Bypass Spoofing',
     id: 'bypass',
     contexts: ['action'],
     parentId: 'options'
   });
-  chrome.contextMenus.create({
+  create({
     title: 'Add to the Exception List',
     id: 'add-exception',
     contexts: ['action'],
     parentId: 'bypass'
   });
-  chrome.contextMenus.create({
+  create({
     title: 'Remove from the Exception List',
     id: 'remove-exception',
     contexts: ['action'],
     parentId: 'bypass'
   });
-  chrome.contextMenus.create({
+  create({
     title: 'Open Exception List in Editor',
     id: 'exception-editor',
     contexts: ['action'],
     parentId: 'bypass'
   });
-});
+};
+
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'reset') {
     chrome.storage.local.set({
@@ -242,7 +255,7 @@ Example of valid formats:
   *://*.example.com/*`;
     chrome.windows.getCurrent(win => {
       chrome.windows.create({
-        url: 'data/editor/index.html?msg=' + encodeURIComponent(msg) + '&storage=bypass',
+        url: '/data/editor/index.html?msg=' + encodeURIComponent(msg) + '&storage=bypass',
         width: 600,
         height: 600,
         left: win.left + Math.round((win.width - 600) / 2),
@@ -265,7 +278,7 @@ chrome.storage.onChanged.addListener(ps => {
         await chrome.contextMenus.remove('set:' + a + '|' + b);
       }
       for (const [a, b] of ps.history.newValue || []) {
-        await chrome.contextMenus.create({
+        await create({
           title: a + ', ' + b,
           id: 'set:' + a + '|' + b,
           contexts: ['action'],

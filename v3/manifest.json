@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "version": "0.2.3",
+  "version": "0.2.4",
   "name": "Spoof Geolocation",
   "description": "This extension alters browser Geolocation latitude and longitude to user-defined values",
   "permissions": [
@@ -21,7 +21,14 @@
   },
   "action":{},
   "background": {
-    "service_worker": "worker.js"
+    "service_worker": "worker.js",
+    "scripts": ["tld.js", "context.js", "worker.js"]
   },
-  "homepage_url": "https://webextension.org/listing/spoof-geolocation.html"
+  "homepage_url": "https://webextension.org/listing/spoof-geolocation.html",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{61173a74-ece7-4ef3-86a7-525538b78430}",
+      "strict_min_version": "128.0"
+    }
+  }
 }

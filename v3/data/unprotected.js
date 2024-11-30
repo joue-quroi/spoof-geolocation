@@ -55,7 +55,6 @@ navigator.geolocation = navigator.geolocation || {
     return false;
   };
 
-
   const root = document.documentElement;
 
   root.addEventListener('sp-response-geo-data', e => {
