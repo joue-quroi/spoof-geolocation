@@ -56,5 +56,5 @@ form {
   justify-content: end;
 }
 #msg {
-  white-space: pre;
+  white-space: pre-wrap;
 }

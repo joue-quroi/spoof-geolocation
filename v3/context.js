@@ -208,13 +208,13 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     });
   }
   else if (info.menuItemId === 'add-exception') {
-    const url = tab.url;
+    const url = info.pageUrl || tab.url;
 
     if (url.startsWith('http')) {
       chrome.storage.local.get({
         bypass: []
       }, prefs => {
-        const d = tld.getDomain(tab.url);
+        const d = tld.getDomain(url);
 
         const hosts = new Set(prefs.bypass);
         hosts.add(d);
@@ -228,13 +228,13 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     }
   }
   else if (info.menuItemId === 'remove-exception') {
-    const url = tab.url;
+    const url = info.pageUrl || tab.url;
 
     if (url.startsWith('http')) {
       chrome.storage.local.get({
         bypass: []
       }, prefs => {
-        const d = tld.getDomain(tab.url);
+        const d = tld.getDomain(url);
 
         console.info('removing', d, '*.' + d, 'from the exception list');
 
@@ -245,14 +245,16 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     }
   }
   else if (info.menuItemId === 'exception-editor') {
-    const msg = `Insert one hostname per line. Press the "Save List" button to update the list.
+    const msg = `Enter one hostname per line. Click the "Save List" button to update the list.
 
-Example of valid formats:
+Examples of valid formats:
 
-  example.com
-  *.example.com
-  https://example.com/*
-  *://*.example.com/*`;
+example.com
+  .example.com
+  https://example.com/
+  ://.example.com/*
+
+For browsers that do not support "URLPattern" (such as Firefox), wildcard matching is unavailable, and simple hostname keyword matching will be used instead.`;
     chrome.windows.getCurrent(win => {
       chrome.windows.create({
         url: '/data/editor/index.html?msg=' + encodeURIComponent(msg) + '&storage=bypass',

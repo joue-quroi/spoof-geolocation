@@ -25,16 +25,23 @@ navigator.geolocation = navigator.geolocation || {
   const bypass = prefs => {
     for (let host of prefs.bypass) {
       try {
-        // fix the formatting
-        if (host.includes('://') === false) {
-          host = '*://' + host;
+        let v;
+        if (typeof URLPattern === 'undefined') {
+          v = location.host.includes(host);
         }
-        if (host.endsWith('*') === false && host.endsWith('/') === false) {
-          host += '/*';
-        }
+        else {
+          // fix the formatting
+          if (host.includes('://') === false) {
+            host = '*://' + host;
+          }
+          if (host.endsWith('*') === false && host.endsWith('/') === false) {
+            host += '/*';
+          }
 
-        const pattern = new self.URLPattern(host);
-        const v = pattern.test(location.href);
+          const pattern = new self.URLPattern(host);
+          v = pattern.test(location.href);
+        }
+        console.log(host, v);
 
         if (v) {
           if (window.top === window) {
