@@ -33,9 +33,10 @@ chrome.runtime.onMessage.addListener((request, sender) => {
   }
 });
 
-const activate = () => chrome.storage.local.get({
-  active: true
-}, async prefs => {
+const activate = async () => {
+  const prefs = await chrome.storage.local.get({
+    active: true
+  });
   await chrome.scripting.unregisterContentScripts();
   if (prefs.active) {
     await chrome.scripting.registerContentScripts([{
@@ -55,10 +56,49 @@ const activate = () => chrome.storage.local.get({
       'js': ['/data/protected.js'],
       'world': 'ISOLATED'
     }]);
+    chrome.action.setTitle({
+      title: 'Geo protection is ON'
+    });
+    chrome.action.setIcon({
+      path: {
+        '16': '/data/icons/16.png',
+        '32': '/data/icons/32.png',
+        '48': '/data/icons/48.png'
+      }
+    });
   }
-});
+  else {
+    chrome.action.setTitle({
+      title: 'Geo protection is OFF'
+    });
+    chrome.action.setIcon({
+      path: {
+        '16': '/data/icons/disabled/16.png',
+        '32': '/data/icons/disabled/32.png',
+        '48': '/data/icons/disabled/48.png'
+      }
+    });
+  }
+};
+
 chrome.runtime.onStartup.addListener(activate);
 chrome.runtime.onInstalled.addListener(activate);
+chrome.storage.onChanged.addListener(ps => {
+  if (ps.active) {
+    activate();
+  }
+});
+
+chrome.commands.onCommand.addListener(async command => {
+  if (command === 'toggle-action') {
+    const prefs = await chrome.storage.local.get({
+      active: true
+    });
+    chrome.storage.local.set({
+      active: prefs.active === false
+    });
+  }
+});
 
 chrome.action.onClicked.addListener(tab => chrome.tabs.create({
   url: 'https://webbrowsertools.com/geolocation/',

@@ -19,12 +19,20 @@
     "128": "data/icons/128.png",
     "256": "data/icons/256.png"
   },
-  "action":{},
+  "action":{
+    "default_popup": "/data/popup/index.html"
+  },
   "background": {
     "service_worker": "worker.js",
     "scripts": ["tld.js", "context.js", "worker.js"]
   },
   "homepage_url": "https://webextension.org/listing/spoof-geolocation.html",
+  "commands": {
+    "_execute_action": {},
+    "toggle-action": {
+      "description": "Toggle between enabled and disable states"
+    }
+  },
   "browser_specific_settings": {
     "gecko": {
       "id": "{61173a74-ece7-4ef3-86a7-525538b78430}",
