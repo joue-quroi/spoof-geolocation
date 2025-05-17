@@ -13,7 +13,6 @@ chrome.storage.local.get({
   active: true
 }).then(prefs => state(prefs.active));
 
-
 self.power.onclick = () => {
   const active = self.power.classList.contains('on') === false;
   chrome.storage.local.set({
@@ -21,7 +20,6 @@ self.power.onclick = () => {
   });
   state(active);
 };
-
 
 self.refresh.onclick = async () => {
   const [tab] = await chrome.tabs.query({

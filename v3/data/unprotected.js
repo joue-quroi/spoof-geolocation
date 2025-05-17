@@ -41,7 +41,6 @@ navigator.geolocation = navigator.geolocation || {
           const pattern = new self.URLPattern(host);
           v = pattern.test(location.href);
         }
-        console.log(host, v);
 
         if (v) {
           if (window.top === window) {

@@ -16,8 +16,8 @@ root.addEventListener('sp-request-permission', async () => {
   }));
 });
 
-const save = async r => {
-  const [latitude, longitude] = r.split(/\s*,\s*/);
+const save = async (r, fix = false) => {
+  const [latitude, longitude, name] = r.split(/\s*,\s*/);
 
   try {
     // validate latitude
@@ -28,7 +28,7 @@ const save = async r => {
       throw Error('Longitude must a number between -180 and 180');
     }
     if (latitude.split('.')[1].length < 4 || longitude.split('.')[1].length < 4) {
-      throw Error('At least 5 digits must appear after the decimal point. Example: 51.507351, -0.127758');
+      throw Error('At least 5 digits must appear after the decimal point. Example: 51.507368, -0.127695');
     }
 
     const prefs = {
@@ -39,12 +39,23 @@ const save = async r => {
     const ps = await chrome.storage.local.get({
       history: []
     });
-    const names = [];
-    ps.history.forEach(([a, b]) => names.push(a + '|' + b));
-    if (names.includes(prefs.latitude + '|' + prefs.longitude) === false) {
-      ps.history.unshift([prefs.latitude, prefs.longitude]);
-      prefs.history = ps.history.slice(0, 10);
+    const n = ps.history.findIndex(([lat, lng]) => {
+      return lat === prefs.latitude && lng === prefs.longitude;
+    });
+    let fname = name;
+    if (fix && fname) {
+      fname = decodeURIComponent(name);
     }
+    if (n >= 0) {
+      // only update name
+      if (fname) {
+        ps.history[n][2] = fname;
+      }
+    }
+    else {
+      ps.history.unshift([prefs.latitude, prefs.longitude, fname || '']);
+    }
+    prefs.history = ps.history.slice(0, 10);
 
     await chrome.storage.local.set(prefs);
 
@@ -79,12 +90,22 @@ const respond = async () => {
 
   if (prefs.enabled) {
     if (!prefs.latitude || !prefs.longitude) {
-      const msg = 'Enter your spoofed "latitude" and "longitude" values. ' +
+      const msg = 'Enter your spoofed "latitude" and "longitude" values as well as a custom name for it. ' +
         'Ensure at least 5 digits follow the decimal point. ' +
-        'Use "https://webbrowsertools.com/geolocation/" to find the values.';
-      const r = prompt(msg, '51.507351, -0.127758');
+        'Use "https://webbrowsertools.com/geolocation/" to simplify this process.';
+      let r = prompt(msg, '51.507368, -0.127695, My Location');
+      let fix = false;
       if (r) {
-        const ps = await save(r);
+        // what if the name includes comma?
+        const firstComma = r.indexOf(',');
+        if (firstComma !== -1) {
+          const n = r.indexOf(',', firstComma + 1);
+          if (n !== -1) {
+            r = r.slice(0, n) + ', ' + encodeURIComponent(r.slice(n + 1).trim());
+            fix = true;
+          }
+        }
+        const ps = await save(r, fix);
         Object.assign(prefs, ps);
       }
     }
@@ -143,7 +164,7 @@ if (location.href && location.href.startsWith('https://webbrowsertools.com/geolo
       setTimeout(() => top.postMessage({
         method: 'configuration-accepted'
       }, '*'), 750);
-      save(e.data.geo).catch(e => {
+      save(e.data.geo, true).catch(e => {
         console.error(e);
         alert(e.message);
       });

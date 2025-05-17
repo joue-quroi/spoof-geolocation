@@ -7,6 +7,18 @@ if (typeof importScripts !== 'undefined') {
 const create = o => chrome.contextMenus.create(o, () => {
   chrome.runtime.lastError;
 });
+const populate = async prefs => {
+  for (const [a, b, name] of prefs.history) {
+    await create({
+      title: a + ', ' + b + (name ? ' → ' + name : ''),
+      id: 'set:' + a + '|' + b,
+      contexts: ['action'],
+      parentId: 'history',
+      type: 'radio',
+      checked: prefs.latitude === a && prefs.longitude === b
+    });
+  }
+};
 
 const context = async () => {
   if (context.built) {
@@ -133,16 +145,7 @@ const context = async () => {
     visible: prefs.history.length !== 0,
     parentId: 'options'
   });
-  for (const [a, b] of prefs.history) {
-    create({
-      title: a + ', ' + b,
-      id: 'set:' + a + '|' + b,
-      contexts: ['action'],
-      parentId: 'history',
-      type: 'radio',
-      checked: prefs.latitude === a && prefs.longitude === b
-    });
-  }
+  populate(prefs);
   create({
     title: 'Bypass Spoofing',
     id: 'bypass',
@@ -277,18 +280,12 @@ chrome.storage.onChanged.addListener(ps => {
       longitude: -1
     }, async prefs => {
       for (const [a, b] of ps.history.oldValue || []) {
-        await chrome.contextMenus.remove('set:' + a + '|' + b);
+        await chrome.contextMenus.remove('set:' + a + '|' + b).catch(() => {});
       }
-      for (const [a, b] of ps.history.newValue || []) {
-        await create({
-          title: a + ', ' + b,
-          id: 'set:' + a + '|' + b,
-          contexts: ['action'],
-          parentId: 'history',
-          type: 'radio',
-          checked: a === prefs.latitude && b === prefs.longitude
-        });
-      }
+      await populate({
+        ...prefs,
+        history: ps.history.newValue || []
+      });
       chrome.contextMenus.update('history', {
         visible: ps.history.newValue.length !== 0
       });
@@ -299,9 +296,11 @@ chrome.storage.onChanged.addListener(ps => {
       latitude: -1,
       longitude: -1
     }, prefs => {
-      chrome.contextMenus.update('set:' + prefs.latitude + '|' + prefs.longitude, {
-        checked: true
-      });
+      if (prefs.latitude !== -1 && prefs.longitude !== -1) {
+        chrome.contextMenus.update('set:' + prefs.latitude + '|' + prefs.longitude, {
+          checked: true
+        }).catch(() => {});
+      }
     });
   }
 });

@@ -6,7 +6,7 @@ body {
   display: grid;
   grid-template-rows: 1fr min-content;
   justify-content: center;
-  grid-gap: 10px;
+  grid-gap: 5px;
   background-color: #fdf5ff;
 }
 button {
@@ -39,6 +39,7 @@ button.power.off svg {
 }
 button.refresh,
 a.test {
+  appearance: none;
   text-decoration: none;
   padding: 5px 10px;
   color: #444;
