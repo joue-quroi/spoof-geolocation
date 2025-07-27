@@ -90,9 +90,9 @@ const respond = async () => {
 
   if (prefs.enabled) {
     if (!prefs.latitude || !prefs.longitude) {
-      const msg = 'Enter your spoofed "latitude" and "longitude" values as well as a custom name for it. ' +
-        'Ensure at least 5 digits follow the decimal point. ' +
-        'Use "https://webbrowsertools.com/geolocation/" to simplify this process.';
+      const msg = `Enter your spoofed "latitude" and "longitude" values as well as a custom name for the location.
+
+Ensure at least 5 digits follow the decimal point.`;
       let r = prompt(msg, '51.507368, -0.127695, My Location');
       let fix = false;
       if (r) {

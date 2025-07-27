@@ -23,19 +23,12 @@
     "default_popup": "/data/popup/index.html"
   },
   "background": {
-    "service_worker": "worker.js",
-    "scripts": ["tld.js", "context.js", "worker.js"]
+    "service_worker": "worker.js"
   },
   "homepage_url": "https://webextension.org/listing/spoof-geolocation.html",
   "commands": {
     "toggle-action": {
       "description": "Toggle between enabled and disable states"
-    }
-  },
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "{61173a74-ece7-4ef3-86a7-525538b78430}",
-      "strict_min_version": "128.0"
     }
   }
 }
