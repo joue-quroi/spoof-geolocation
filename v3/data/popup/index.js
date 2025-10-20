@@ -30,3 +30,13 @@ self.refresh.onclick = async () => {
     chrome.tabs.reload(tab.id);
   }
 };
+
+
+chrome.storage.local.get({
+  latitude: -1,
+  longitude: -1
+}).then(prefs => {
+  if (prefs.latitude !== -1 && prefs.longitude !== -1) {
+    document.querySelector('.info span').textContent = `[${prefs.latitude}, ${prefs.longitude}]`;
+  }
+});

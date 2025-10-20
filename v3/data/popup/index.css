@@ -1,13 +1,19 @@
 body {
   font-size: 13px;
   font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
-  width: 150px;
-  height: 250px;
+  width: 200px;
+  height: 280px;
   display: grid;
-  grid-template-rows: 1fr min-content;
+  grid-template-rows: min-content 1fr min-content;
+  grid-template-columns: 1fr;
   justify-content: center;
   grid-gap: 5px;
   background-color: #fdf5ff;
+  margin: 5px;
+
+  :focus-visible {
+    outline-color: #2196f3;
+  }
 }
 button {
   cursor: pointer;
@@ -15,7 +21,7 @@ button {
 button.power {
   border: none;
   background-color: transparent;
-  fill: #696969;
+  fill: #2196f3;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -25,9 +31,6 @@ button.power {
 button.power * {
   pointer-events: none;
 }
-button.power:hover svg {
-  fill: #404040;
-}
 button.power.off .on {
   display: none;
 }
@@ -35,16 +38,38 @@ button.power.on .off {
   display: none;
 }
 button.power.off svg {
-  fill: #c0c0c0;
+  fill: #f44336;
 }
 button.refresh,
 a.test {
   appearance: none;
   text-decoration: none;
-  padding: 5px 10px;
   color: #444;
   background-image: linear-gradient(rgb(237, 237, 237), rgb(237, 237, 237) 38%, rgb(222, 222, 222));
   box-shadow: rgba(0, 0, 0, 0.08) 0 1px 0, rgba(255, 255, 255, 0.75) 0 1px 2px inset;
   text-shadow: rgb(240, 240, 240) 0 1px 0;
   border: solid 1px rgba(0, 0, 0, 0.25);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 5px;
+  justify-content: center;
+  height: 32px;
+  box-sizing: border-box;
+
+   span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+   }
+}
+.tools {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.info {
+  text-align: center;
 }

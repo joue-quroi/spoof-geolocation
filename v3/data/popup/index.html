@@ -6,15 +6,31 @@
   <link rel="stylesheet" type="text/css" href="index.css">
 </head>
 <body>
+  <div class="info">
+    <span></span>
+  </div>
   <button id="power" class="power on" title="Alt + P or Control + Option + P" accesskey="p">
-    <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" width="64">
+    <svg viewBox="0 0 512 512" width="100">
       <path d="M256 288c17.67 0 32-14.33 32-32V32c0-17.67-14.33-32-32-32S224 14.33 224 32v224C224 273.7 238.3 288 256 288zM403.7 66.81c-13.92-10.84-34.03-8.406-44.92 5.5c-10.89 13.94-8.438 34.03 5.484 44.94C407.3 150.9 432 201.5 432 256c0 97.03-78.95 176-176 176S80 353 80 256c0-54.53 24.69-105.1 67.72-138.8c13.92-10.91 16.38-31 5.484-44.94c-10.91-13.91-31-16.34-44.92-5.5C49.64 112.7 16 181.7 16 256c0 132.3 107.7 240 240 240s240-107.7 240-240C496 181.7 462.4 112.7 403.7 66.81z"/>
     </svg>
     <span class="on">ON</span>
     <span class="off">OFF</span>
   </button>
-  <button id="refresh" class="refresh" title="Alt + R or Control + Option + R" accesskey="r">Refresh Tab</button>
-  <a class="test" title="Alt + T or Control + Option + T" accesskey="t" href="https://webbrowsertools.com/geolocation/" target="_blank" tabindex="0" autofocus>Test Geolocation</a>
+  <div class="tools">
+    <button id="refresh" class="refresh" title="Alt + R or Control + Option + R" accesskey="r">
+      <svg width="22" viewBox="0 0 512 512">
+        <path d="M256,384.1c-70.7,0-128-57.3-128-128.1c0-70.8,57.3-128.1,128-128.1V84l96,64l-96,55.7v-55.8   c-59.6,0-108.1,48.5-108.1,108.1c0,59.6,48.5,108.1,108.1,108.1S364.1,316,364.1,256H384C384,327,326.7,384.1,256,384.1z"/>
+      </svg>
+      <span>Refresh Tab</span>
+    </button>
+    <a class="test" title="Alt + T or Control + Option + T" accesskey="t" href="https://webbrowsertools.com/geolocation/" target="_blank" tabindex="0" autofocus>
+      <svg viewBox="0 0 32 32" width=16>
+        <path d="M27.95,15A12,12,0,0,0,17,4.05V0H15V4.05A12,12,0,0,0,4.05,15H0v2H4.05A12,12,0,0,0,15,27.95V32h2V27.95A12,12,0,0,0,27.95,17H32V15Zm-2,2A10,10,0,0,1,17,25.95V22H15v3.95A10,10,0,0,1,6.05,17H10V15H6.05A10,10,0,0,1,15,6.05V10h2V6.05A10,10,0,0,1,25.95,15H22v2Z"/>
+        <circle cx="16" cy="16" r="2"/>
+      </svg>
+      <span>Test Geolocation</span>
+    </a>
+  </div>
   <script type="text/javascript" src="index.js"></script>
 </body>
 </html>
