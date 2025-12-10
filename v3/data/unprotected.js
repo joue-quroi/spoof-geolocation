@@ -1,4 +1,5 @@
-// polyfill
+// global HTMLPermissionElement, HTMLGeolocationElement
+
 navigator.geolocation = navigator.geolocation || {
   getCurrentPosition() {},
   watchPosition() {}
@@ -19,7 +20,8 @@ navigator.geolocation = navigator.geolocation || {
   let id = 0;
   const lazy = {
     geos: [],
-    permissions: []
+    permissions: [],
+    prefs: null
   };
 
   const bypass = prefs => {
@@ -116,8 +118,63 @@ navigator.geolocation = navigator.geolocation || {
     }
   });
 
+  // HTMLPermissionElement & HTMLGeolocationElement
+  if (typeof HTMLPermissionElement !== 'undefined' || typeof HTMLGeolocationElement !== 'undefined') {
+    root.addEventListener('sp-response-permission', e => {
+      // HTMLPermissionElement
+      if (typeof HTMLPermissionElement !== 'undefined') {
+        const ps = Object.getOwnPropertyDescriptor(HTMLPermissionElement.prototype, 'permissionStatus');
+        Object.defineProperty(HTMLPermissionElement.prototype, 'permissionStatus', {
+          configurable: true,
+          enumerable: true,
+          get: function() {
+            if (this.type === 'geolocation') {
+              if (lazy.prefs) {
+                // update prefs for the next request
+                // root.dispatchEvent(new Event('sp-request-permission'));
+                if (!bypass(lazy.prefs)) {
+                  return lazy.prefs.enabled ? 'granted' : 'denied';
+                }
+              }
+              else {
+                console.info('HTMLPermissionElement -> permissionStatus called when the extension is not yet ready');
+              }
+            }
+            return ps.get.call(this);
+          }
+        });
+      }
+      // HTMLGeolocationElement
+      if (typeof HTMLGeolocationElement !== 'undefined') {
+        const ps = Object.getOwnPropertyDescriptor(HTMLGeolocationElement.prototype, 'permissionStatus');
+        Object.defineProperty(HTMLGeolocationElement.prototype, 'permissionStatus', {
+          configurable: true,
+          enumerable: true,
+          get: function() {
+            if (lazy.prefs) {
+              // update prefs for the next request
+              // root.dispatchEvent(new Event('sp-request-permission'));
+              if (!bypass(lazy.prefs)) {
+                return lazy.prefs.enabled ? 'granted' : 'denied';
+              }
+            }
+            else {
+              console.info('HTMLGeolocationElement -> permissionStatus called when the extension is not yet ready');
+            }
+            return ps.get.call(this);
+          }
+        });
+      }
+    }, {once: true});
+    root.dispatchEvent(new Event('sp-request-permission'));
+  }
+
   root.addEventListener('sp-response-permission', e => {
-    const prefs = e.detail;
+    const prefs = lazy.prefs = e.detail;
+
+    if (lazy.permissions.length === 0) {
+      return;
+    }
 
     const b = bypass(prefs);
 
