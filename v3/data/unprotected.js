@@ -1,5 +1,3 @@
-// global HTMLPermissionElement, HTMLGeolocationElement
-
 navigator.geolocation = navigator.geolocation || {
   getCurrentPosition() {},
   watchPosition() {}
@@ -118,7 +116,7 @@ navigator.geolocation = navigator.geolocation || {
     }
   });
 
-  // HTMLPermissionElement & HTMLGeolocationElement
+  // HTMLPermissionElement & HTMLGeolocationElement (https://permission.site/pepc)
   if (typeof HTMLPermissionElement !== 'undefined' || typeof HTMLGeolocationElement !== 'undefined') {
     root.addEventListener('sp-response-permission', e => {
       // HTMLPermissionElement
@@ -130,8 +128,6 @@ navigator.geolocation = navigator.geolocation || {
           get: function() {
             if (this.type === 'geolocation') {
               if (lazy.prefs) {
-                // update prefs for the next request
-                // root.dispatchEvent(new Event('sp-request-permission'));
                 if (!bypass(lazy.prefs)) {
                   return lazy.prefs.enabled ? 'granted' : 'denied';
                 }
@@ -152,8 +148,6 @@ navigator.geolocation = navigator.geolocation || {
           enumerable: true,
           get: function() {
             if (lazy.prefs) {
-              // update prefs for the next request
-              // root.dispatchEvent(new Event('sp-request-permission'));
               if (!bypass(lazy.prefs)) {
                 return lazy.prefs.enabled ? 'granted' : 'denied';
               }

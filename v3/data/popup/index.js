@@ -31,12 +31,27 @@ self.refresh.onclick = async () => {
   }
 };
 
+self.reset.onclick = async () => {
+  if (confirm('Are you sure you want to reset the current geolocation?')) {
+    await chrome.storage.local.set({
+      latitude: -1,
+      longitude: -1
+    });
+    self.geo.textContent = 'Will be asked';
+  }
+};
+
+self.enabled.onchange = e => chrome.storage.local.set({
+  enabled: e.target.checked
+});
 
 chrome.storage.local.get({
   latitude: -1,
-  longitude: -1
+  longitude: -1,
+  enabled: true
 }).then(prefs => {
   if (prefs.latitude !== -1 && prefs.longitude !== -1) {
-    document.querySelector('.info span').textContent = `[${prefs.latitude}, ${prefs.longitude}]`;
+    self.geo.textContent = `[${prefs.latitude}, ${prefs.longitude}]`;
   }
+  self.enabled.checked = prefs.enabled;
 });

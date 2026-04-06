@@ -303,4 +303,9 @@ chrome.storage.onChanged.addListener(ps => {
       }
     });
   }
+  else if (ps.enabled) {
+    chrome.contextMenus.update('enabled', {
+      checked: ps.enabled.newValue
+    });
+  }
 });
