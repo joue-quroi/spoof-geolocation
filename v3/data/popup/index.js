@@ -1,3 +1,5 @@
+const isFF = navigator.userAgent.includes('Firefox');
+
 const state = active => {
   if (active) {
     self.power.classList.add('on');
@@ -32,12 +34,20 @@ self.refresh.onclick = async () => {
 };
 
 self.reset.onclick = async () => {
+  if (isFF) { // Firefox issue
+    document.body.style.width = '500px';
+  }
+
   if (confirm('Are you sure you want to reset the current geolocation?')) {
     await chrome.storage.local.set({
       latitude: -1,
       longitude: -1
     });
     self.geo.textContent = 'Will be asked';
+  }
+
+  if (isFF) {
+    document.body.style.width = '200px';
   }
 };
 

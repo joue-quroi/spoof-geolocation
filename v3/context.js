@@ -252,7 +252,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
 Examples of valid formats:
 
-example.com
+  example.com
   .example.com
   https://example.com/
   ://.example.com/*

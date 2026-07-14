@@ -20,6 +20,6 @@ document.querySelector('form').onsubmit = e => {
     const e = document.getElementById('save');
     e.value = 'List Saved!';
 
-    setTimeout(() => e.value = 'Save List', 750);
+    setTimeout(() => e.value = 'Save Changes', 750);
   });
 };

@@ -81,8 +81,17 @@ const activate = async () => {
   }
 };
 
-chrome.runtime.onStartup.addListener(activate);
-chrome.runtime.onInstalled.addListener(activate);
+{
+  const once = () => {
+    if (once.done) {
+      return;
+    }
+    once.done = true;
+    activate();
+  };
+  chrome.runtime.onStartup.addListener(once);
+  chrome.runtime.onInstalled.addListener(once);
+}
 chrome.storage.onChanged.addListener(ps => {
   if (ps.active) {
     activate();
